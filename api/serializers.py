@@ -140,13 +140,11 @@ class LoginSerializer(serializers.Serializer):
         model = get_user_model()
         users = model.objects.filter(email=data['email'])
 
-        print(users.exists())
-        print(users.get().check_password(data['password']))
-
-        if users.exists() and users.get().check_password(data['password']):
-            return data
-        raise serializers.ValidationError({"error": "Wrong email or password."})
+        if not users.exists() or not users.get().check_password(data['password']):
+            raise serializers.ValidationError({"error": "Wrong email or password."})
+        return data
 
 class LoginResponseSerializer(serializers.Serializer):
     access = serializers.CharField(read_only=True)
     refresh = serializers.CharField(read_only=True)
+    is_admin = serializers.BooleanField(read_only=True)
