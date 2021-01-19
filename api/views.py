@@ -59,6 +59,7 @@ class AuthViewSet(viewsets.ViewSet):
             {
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
+                "is_admin": user.is_superuser
             }
         )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
