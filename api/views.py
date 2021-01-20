@@ -53,7 +53,9 @@ class MovieViewSet(viewsets.ModelViewSet):
 
         return Response(response_serializer.data)
 
-    @action(detail=False, methods=["POST"])
+    @action(
+        detail=False, methods=["POST"], permission_classes=[permissions.IsAdminUser]
+    )
     def bulk_load(self, request):
         serializer = serializers.CreateUpdateMovieSerializer(
             data=request.data, many=True
@@ -61,12 +63,7 @@ class MovieViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
-        response_serializer = self.serializer_class(serializer.instance)
-
-        headers = self.get_success_headers(response_serializer.data)
-        return Response(
-            response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response({}, status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["GET"])
     def favorites(self, request):
