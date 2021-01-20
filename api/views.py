@@ -17,6 +17,19 @@ class MovieViewSet(viewsets.ModelViewSet):
             return serializers.CreateUpdateMovieSerializer
         return self.serializer_class
 
+    def get_queryset(self):
+        queryset = self.queryset
+
+        q = self.request.query_params.get("q")
+        if q:
+            queryset = queryset.filter(title__icontains=q)
+
+        genre = self.request.query_params.get('genre')        
+        if genre:
+            genres = models.Genre.objects.filter(name=genre)
+            queryset = queryset.filter(genres__in=genres)
+        return queryset
+
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -40,6 +53,30 @@ class MovieViewSet(viewsets.ModelViewSet):
 
         return Response(response_serializer.data)
 
+    @action(detail=False, methods=["POST"])
+    def bulk_load(self, request):
+        serializer = serializers.CreateUpdateMovieSerializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        response_serializer = self.serializer_class(serializer.instance)
+
+        headers = self.get_success_headers(response_serializer.data)
+        return Response(
+            response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
+
+class GenresViewSet(viewsets.ModelViewSet):
+    queryset = models.Genre.objects.all()
+    serializer_class = serializers.GetGenreSerializer
+    pagination_class = None
+    http_method_names = ['head', 'get']
+
+class ActorsViewSet(viewsets.ModelViewSet):
+    queryset = models.Actor.objects.all()
+    serializer_class = serializers.GetGenreSerializer
+    pagination_class = None
+    http_method_names = ['head', 'get']
 
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
@@ -59,7 +96,7 @@ class AuthViewSet(viewsets.ViewSet):
             {
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
-                "is_admin": user.is_superuser
+                "is_admin": user.is_superuser,
             }
         )
         return Response(response_serializer.data, status=status.HTTP_200_OK)

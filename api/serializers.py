@@ -41,24 +41,28 @@ class GetMovieSerializer(serializers.ModelSerializer):
 class CreateUpdateMovieSerializer(serializers.Serializer):
     title = serializers.CharField(required=True)
     year = serializers.CharField(required=True)
-    genres = serializers.ListField(allow_empty=False, child=serializers.CharField())
-    ratings = serializers.ListField(allow_empty=False, child=serializers.IntegerField())
-    poster = serializers.CharField(required=True)
-    content_rating = serializers.IntegerField(required=True)
-    duration = serializers.CharField(required=True)
-    release_date = serializers.CharField(required=True)
+    genres = serializers.ListField(child=serializers.CharField())
+    ratings = serializers.ListField(child=serializers.IntegerField())
+    poster = serializers.CharField(allow_blank=True)
+    content_rating = serializers.CharField(allow_blank=True)
+    duration = serializers.CharField(allow_blank=True)
+    release_date = serializers.CharField(allow_blank=True)
     average_rating = serializers.FloatField(required=True)
     original_title = serializers.CharField(allow_blank=True)
-    storyline = serializers.CharField(required=True)
-    actors = serializers.ListField(allow_empty=False, child=serializers.CharField())
+    storyline = serializers.CharField(allow_blank=True)
+    actors = serializers.ListField(child=serializers.CharField())
     imdb_rating = serializers.CharField(allow_blank=True)
-    posterurl = serializers.CharField(required=True)
+    posterurl = serializers.CharField(allow_blank=True)
 
     def create(self, validated_data):
         actors_names = validated_data.pop("actors")
         genres_names = validated_data.pop("genres")
         ratings = validated_data.pop("ratings")
         imdb_rating = validated_data.pop("imdb_rating")
+
+        movies = models.Movie.objects.filter(title=validated_data["title"])
+        if movies.exists():
+            return movies.get()
 
         if imdb_rating:
             validated_data["imdb_rating"] = float(imdb_rating)
@@ -112,13 +116,14 @@ class CreateUpdateMovieSerializer(serializers.Serializer):
 
         return movie
 
+
 class CreateUserSerializer(serializers.Serializer):
     email = serializers.EmailField(write_only=True, required=True)
     password = serializers.CharField(write_only=True, required=True)
 
     def create(self, validated_data):
         validated_data["username"] = validated_data["email"]
-        password = validated_data.pop('password')
+        password = validated_data.pop("password")
 
         user = get_user_model().objects.create(**validated_data)
         user.set_password(password)
@@ -128,9 +133,10 @@ class CreateUserSerializer(serializers.Serializer):
 
     def validate(self, data):
         model = get_user_model()
-        if model.objects.filter(email=data['email']).exists():
+        if model.objects.filter(email=data["email"]).exists():
             raise serializers.ValidationError({"email": "Email already in use."})
         return data
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(write_only=True, required=True)
@@ -138,13 +144,20 @@ class LoginSerializer(serializers.Serializer):
 
     def validate(self, data):
         model = get_user_model()
-        users = model.objects.filter(email=data['email'])
+        users = model.objects.filter(email=data["email"])
 
-        if not users.exists() or not users.get().check_password(data['password']):
+        if not users.exists() or not users.get().check_password(data["password"]):
             raise serializers.ValidationError({"error": "Wrong email or password."})
         return data
+
 
 class LoginResponseSerializer(serializers.Serializer):
     access = serializers.CharField(read_only=True)
     refresh = serializers.CharField(read_only=True)
     is_admin = serializers.BooleanField(read_only=True)
+
+
+class GetGenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Genre
+        fields = ["id", "name"]

@@ -11,7 +11,7 @@ class Movie(models.Model):
     year = models.CharField(max_length=255)
     genres = models.ManyToManyField(Genre)
     poster = models.CharField(max_length=255)
-    content_rating = models.IntegerField()
+    content_rating = models.CharField(max_length=255)
     duration = models.CharField(max_length=255)
     release_date = models.CharField(max_length=255)
     average_rating = models.FloatField()
