@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.auth.models import User
 class Genre(models.Model):
     name = models.CharField(max_length=255)
 
@@ -20,9 +20,11 @@ class Movie(models.Model):
     actors = models.ManyToManyField(Actor)
     imdb_rating = models.FloatField(max_length=255)
     posterurl = models.CharField(max_length=255)
+    user_favorites = models.ManyToManyField(User)
 
 class Rating(models.Model):
     movie = models.ForeignKey(Movie, related_name="ratings", on_delete=models.CASCADE)
     value = models.IntegerField()
+
 
 

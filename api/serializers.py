@@ -7,6 +7,7 @@ class GetMovieSerializer(serializers.ModelSerializer):
     actors = serializers.SerializerMethodField()
     genres = serializers.SerializerMethodField()
     ratings = serializers.SerializerMethodField()
+    favorite = serializers.SerializerMethodField()
 
     def get_actors(self, obj):
         return obj.actors.values_list("name", flat=True)
@@ -16,6 +17,9 @@ class GetMovieSerializer(serializers.ModelSerializer):
 
     def get_ratings(self, obj):
         return obj.ratings.values_list("value", flat=True)
+
+    def get_favorite(self, obj):
+        return self.context['request'].user.movie_set.filter(id=obj.id).exists()
 
     class Meta:
         model = models.Movie
@@ -35,6 +39,7 @@ class GetMovieSerializer(serializers.ModelSerializer):
             "actors",
             "imdb_rating",
             "posterurl",
+            "favorite"
         ]
 
 

@@ -24,7 +24,7 @@ class MovieViewSet(viewsets.ModelViewSet):
         if q:
             queryset = queryset.filter(title__icontains=q)
 
-        genre = self.request.query_params.get('genre')        
+        genre = self.request.query_params.get("genre")
         if genre:
             genres = models.Genre.objects.filter(name=genre)
             queryset = queryset.filter(genres__in=genres)
@@ -55,7 +55,9 @@ class MovieViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["POST"])
     def bulk_load(self, request):
-        serializer = serializers.CreateUpdateMovieSerializer(data=request.data, many=True)
+        serializer = serializers.CreateUpdateMovieSerializer(
+            data=request.data, many=True
+        )
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
@@ -66,17 +68,40 @@ class MovieViewSet(viewsets.ModelViewSet):
             response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
+    @action(detail=False, methods=["GET"])
+    def favorites(self, request):
+        queryset = self.get_queryset().filter(id__in=request.user.movie_set.all())
+        page = self.paginate_queryset(queryset)
+        serializer = serializers.GetMovieSerializer(
+            page, many=True, context={"request": request}
+        )
+        return self.get_paginated_response(serializer.data)
+
+    @action(detail=True, methods=["PUT", "DELETE"])
+    def favorite(self, request, pk=None):
+        movie = self.get_object()
+        if request.method == "PUT":
+            movie.user_favorites.add(self.request.user)
+        else:
+            movie.user_favorites.remove(self.request.user)
+
+        movie.save()
+        return Response({}, status=status.HTTP_204_NO_CONTENT)
+
+
 class GenresViewSet(viewsets.ModelViewSet):
     queryset = models.Genre.objects.all()
     serializer_class = serializers.GetGenreSerializer
     pagination_class = None
-    http_method_names = ['head', 'get']
+    http_method_names = ["head", "get"]
+
 
 class ActorsViewSet(viewsets.ModelViewSet):
     queryset = models.Actor.objects.all()
     serializer_class = serializers.GetGenreSerializer
     pagination_class = None
-    http_method_names = ['head', 'get']
+    http_method_names = ["head", "get"]
+
 
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
