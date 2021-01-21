@@ -28,28 +28,32 @@ class MovieViewSet(viewsets.ModelViewSet):
         if genre:
             genres = models.Genre.objects.filter(name=genre)
             queryset = queryset.filter(genres__in=genres)
-        return queryset
+        return queryset.order_by("id")
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
-        response_serializer = self.serializer_class(serializer.instance)
+        response_serializer = serializers.GetMovieSerializer(
+            serializer.instance, context={"request": request}
+        )
 
         headers = self.get_success_headers(response_serializer.data)
         return Response(
             response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
-    def update(self, request):
+    def update(self, request, pk=None):
         instance = self.get_object()
 
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
-        response_serializer = self.serializer_class(serializer.instance)
+        response_serializer = serializers.GetMovieSerializer(
+            serializer.instance, context={"request": request}
+        )
 
         return Response(response_serializer.data)
 
@@ -87,12 +91,12 @@ class MovieViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["PUT", "DELETE"])
     def rate(self, request, pk=None):
-        serializer = serializers.UserRateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
         movie = self.get_object()
         
         if request.method == "PUT":
+            serializer = serializers.UserRateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
             rates = self.request.user.ratings.filter(movie=movie)
             if rates.exists():
                 rate = rates.get()
@@ -100,7 +104,9 @@ class MovieViewSet(viewsets.ModelViewSet):
                 rate.save()
             else:
                 models.Rating.objects.create(
-                    movie=movie, user=request.user, value=serializer.validated_data["rate"]
+                    movie=movie,
+                    user=request.user,
+                    value=serializer.validated_data["rate"],
                 )
         else:
             self.request.user.ratings.filter(movie=movie).delete()
